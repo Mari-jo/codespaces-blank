@@ -191,11 +191,13 @@ void attacco()
     {
         stampaGriglia();
        
-        while(r<=10&&c<=10) {
+        while(true) {
             cout << "[GIOCATORE-" << giocatore + 1 << "] - Inserisci riga <spazio> colonna:";
             cin >> r >> c;
             if(r>10||c>10){
                 cout<<"Valori non validi, riprova"<<endl;
+            } else {
+                break;
             }
         }
         
