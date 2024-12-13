@@ -18,24 +18,43 @@ using namespace std;
  */
 enum Giocatore
 {
-    giocatore1,
-    giocatore2,
-    bot
+    giocatore1, //0
+    bot //1
 };
 
-int grigliaGiocatore1[10][10] = {0}, grigliaGiocatore1f[10][10] = {0}, grigliaBot2f[10][10] = {0}, grigliaBot2[10][10] = {0}, turno, r, c;
+int grigliaGiocatore1[10][10] = {0}, grigliaGiocatore1f[10][10] = {0}, grigliaBot2f[10][10] = {0}, grigliaBot2[10][10] = {0}, turno = 0, r, c;
 
-int nave15 = 5;
-int nave14 = 4;
-int nave13 = 3;
-int nave12 = 2;
-int nave25 = 5;
-int nave24 = 4;
-int nave23 = 3;
-int nave22 = 2;
-int totnavi1 = 14;
-int totnavi2 = 14;
-bool statopartita = true;
+int naviDeiGiocatori[2][5] = {
+    {1, 2, 3, 4, 5}, // giocatore
+    {1, 2, 3, 4, 5}, // bot
+}; 
+int totNaviGiocatore = 14;
+int totNaviBot = 14;
+
+Giocatore chiGiocaOra()
+{
+    return turno % 2 == 0 ? giocatore1 : bot;
+}
+
+int (*tabellaDiGiocaOra())[10]
+{
+    return (chiGiocaOra() == bot) ? grigliaBot2 : grigliaGiocatore1;
+}
+int (*tabellaDiGiocaOra_f())[10]
+{
+    return (chiGiocaOra() == bot) ? grigliaBot2f : grigliaGiocatore1f;
+}
+
+int generaRigaOColonna()
+{
+    return rand() % 10;
+}
+
+string generaDirezione()
+{
+    string direzioni[4] = {"sopra", "sotto", "destra", "sinistra"};
+    return direzioni[rand() % 4];
+}
 
 // Funzione per confrontare due stringhe ignorando maiuscole/minuscole
 bool Maiusc(const string &str1, const string &str2)
@@ -51,9 +70,12 @@ bool Maiusc(const string &str1, const string &str2)
                  });
 }
 
-// Funzione per stampare una griglia 10x10
-void stampaGriglia(int griglia[10][10])
+// Funzione per stampare la griglia 10x10 del giocatore corrente
+void stampaGriglia()
 {
+    // recupero la matrice[10][10] del giocatore corrente
+    int(*griglia)[10] = tabellaDiGiocaOra();
+
     for (int i = 0; i < 10; i++)
     {
         for (int j = 0; j < 10; j++)
@@ -65,8 +87,10 @@ void stampaGriglia(int griglia[10][10])
 }
 
 // Funzione per validare se una nave può essere posizionata
-bool validaPosizione(int griglia[10][10], int r, int c, int lunghezza, string direzione)
+bool validaPosizione(int r, int c, int lunghezza, string direzione)
 {
+    // recupero la matrice[10][10] del giocatore corrente
+    int(*griglia)[10] = tabellaDiGiocaOra();
 
     for (int i = 0; i < lunghezza; i++)
     {
@@ -88,8 +112,11 @@ bool validaPosizione(int griglia[10][10], int r, int c, int lunghezza, string di
 }
 
 // Funzione per posizionare una nave
-void posizionaNave(int griglia[10][10], int r, int c, int lunghezza, string direzione)
+void posizionaNave(int r, int c, int lunghezza, string direzione)
 {
+    // recupero la matrice[10][10] del giocatore corrente
+    int(*griglia)[10] = tabellaDiGiocaOra();
+
     for (int i = 0; i < lunghezza; i++)
     {
         griglia[r][c] = lunghezza; // Posiziona la nave
@@ -107,21 +134,21 @@ void posizionaNave(int griglia[10][10], int r, int c, int lunghezza, string dire
 void generaTabella(Giocatore giocatore, int lunghezza)
 {
     bool generaDaSolo = giocatore == bot;
-    int(*grigliaAttuale)[10] = generaDaSolo ? grigliaBot2 : grigliaGiocatore1;
 
     for (int i = 0; i < 5; i++)
     {
         string direzione;
-        cout << "Nave " << i + 1 << " (lunghezza " << lunghezza << "):";
-
+        if (!generaDaSolo)
+        {
+            cout << "Nave " << i + 1 << " (lunghezza " << lunghezza << "):";
+        }
         while (true)
         {
-            string direzioni[4] = {"sopra", "sotto", "destra", "sinistra"};
             if (generaDaSolo)
             {
-                r = rand() % 10;
-                c = rand() % 10;
-                direzione = direzioni[rand() % 4];
+                r = generaRigaOColonna();
+                c = generaRigaOColonna();
+                direzione = generaDirezione();
             }
             else
             {
@@ -132,9 +159,9 @@ void generaTabella(Giocatore giocatore, int lunghezza)
                 cout << "Direzione (sopra, sotto, destra, sinistra): ";
                 cin >> direzione;
             }
-            if (validaPosizione(grigliaAttuale, r - 1, c - 1, lunghezza, direzione))
+            if (validaPosizione(r - 1, c - 1, lunghezza, direzione))
             {
-                posizionaNave(grigliaAttuale, r - 1, c - 1, lunghezza, direzione);
+                posizionaNave(r - 1, c - 1, lunghezza, direzione);
                 break;
             }
             else
@@ -148,14 +175,80 @@ void generaTabella(Giocatore giocatore, int lunghezza)
 
         if (!generaDaSolo)
         {
-            stampaGriglia(grigliaAttuale); // Stampa la griglia aggiornata
+            stampaGriglia(); // Stampa la griglia aggiornata
         }
         lunghezza--;
     }
 }
 
-void generaMossa()
+void attacco()
 {
+    Giocatore giocatore = chiGiocaOra();
+    int(*griglia)[10] = tabellaDiGiocaOra();
+    int(*griglia_f)[10] = tabellaDiGiocaOra_f();
+
+    if (giocatore == giocatore1)
+    {
+        stampaGriglia();
+       
+        while(r<=10&&c<=10) {
+            cout << "[GIOCATORE-" << giocatore + 1 << "] - Inserisci riga <spazio> colonna:";
+            cin >> r >> c;
+            if(r>10||c>10){
+                cout<<"Valori non validi, riprova"<<endl;
+            }
+        }
+        
+    }
+    else
+    {
+        r = generaRigaOColonna();
+        c = generaRigaOColonna();
+    }
+
+    int casella = griglia[r][c];
+    int casella_f = griglia_f[r][c];
+
+    if (casella_f == 1)
+    {
+        cout << "Hai gia attaccato queste coordinate!";
+    }
+    else
+    {
+        int nave = naviDeiGiocatori[giocatore][casella - 1];
+        if (nave != 0)
+        {
+            nave -= 1; // decremento il contatore della nave presa
+            cout << "Hai preso un blocco della nave lunga " << casella << "! Gli rimangono " << nave << " spazi!!";
+
+            if (giocatore == bot)
+            {
+                totNaviBot--;
+            }
+            else
+            {
+                totNaviGiocatore--;
+            }
+        }
+        else
+        {
+            cout << "Hai mancato le navi!";
+        }
+    }
+}
+
+bool partitaNonTerminata()
+{
+    // Se uno dei due giocatori ha terminato le navi la partita e' completa
+    bool totNaviGiocatoreFinite = (totNaviGiocatore != 0);
+    bool totNaviBotFinite = (totNaviBot != 0);
+
+    if (!totNaviGiocatoreFinite || !totNaviBotFinite)
+    {
+        cout << "Il vincitore e' " << (!totNaviGiocatoreFinite ? "il giocatore" : "il computer");
+    }
+
+    return totNaviGiocatoreFinite || totNaviBotFinite;
 }
 
 // Programma principale
@@ -183,127 +276,19 @@ int main()
             cin.get();
         }
 
-        cout << string(50, '\n'); // Pulisce lo schermo
+        system("clear");
     }
 
     cout << "Entrambi i giocatori hanno posizionato le loro navi!" << endl;
-    cout << "Inizia la fase di battaglia" << endl;
+    cout << "Inizia la fase di battaglia! Premi un tasto per iniziare" << endl;
 
     // si inizia ad attaccare.
-    while (statopartita == true)
+    while (partitaNonTerminata())
     {
         cin.ignore();
-        cin.get();
-        // cout << string(50, '\n'); // Pulisce lo schermo
-
         system("clear");
-        if (turno % 2 == 0)
-        {
-            stampaGriglia(grigliaBot2f);
-            cout << "giocatore 1 inserisci riga e colonne dell'attacco: ";
-            cin >> r;
-            cin >> c;
-            if (grigliaBot2[r][c] != 0)
-            {
-                if (grigliaBot2f[r][c] == 1)
-                {
-                    cout << "Hai gia attaccato queste coordinate!";
-                }
-                else
-                {
-                    switch (grigliaBot2[r][c])
-                    {
-                    case 5:
-                        nave15 -= 1;
-                        totnavi1 -= 1;
-                        cout << "Hai preso un blocco della nave lunga 5! Gli rimangono " << nave15 << " spazi!!";
-                        break;
-
-                    case 4:
-                        nave14 -= 1;
-                        totnavi1 -= 1;
-                        cout << "Hai preso un blocco della nave lunga 4! Gli rimangono " << nave14 << " spazi!!";
-                        break;
-
-                    case 3:
-                        nave13 -= 1;
-                        totnavi1 -= 1;
-                        cout << "Hai preso un blocco della nave lunga 3! Gli rimangono " << nave13 << " spazi!!";
-                        ;
-                        break;
-
-                    case 2:
-                        nave12 -= 1;
-                        totnavi1 -= 1;
-                        cout << "Hai preso un blocco della nave lunga 2! Gli rimangono " << nave12 << " spazi!!";
-                        break;
-
-                    default:
-                        cout << "Hai mancato le navi!";
-                        break;
-                    }
-                }
-            }
-        }
-        if (turno % 2 == 1)
-        {
-            stampaGriglia(grigliaGiocatore1f);
-            cout << "giocatore 2 inserisci riga e colonne dell'attacco: ";
-            cin >> r;
-            cin >> c;
-            if (grigliaGiocatore1[r][c] != 0)
-            {
-                if (grigliaGiocatore1f[r][c] == 1)
-                {
-                    cout << "Hai gia attaccato queste coordinate!";
-                }
-                else
-                {
-                    switch (grigliaGiocatore1[r][c])
-                    {
-                    case 5:
-                        nave25 -= 1;
-                        totnavi2 -= 1;
-                        cout << "Hai preso un blocco della nave lunga 5! Gli rimangono " << nave25 << " spazi!!";
-                        break;
-
-                    case 4:
-                        nave24 -= 1;
-                        totnavi2 -= 1;
-                        cout << "Hai preso un blocco della nave lunga 4! Gli rimangono " << nave24 << " spazi!!";
-                        break;
-
-                    case 3:
-                        nave23 -= 1;
-                        totnavi2 -= 1;
-                        cout << "Hai preso un blocco della nave lunga 3! Gli rimangono " << nave23 << " spazi!!";
-                        ;
-                        break;
-
-                    case 2:
-                        nave22 -= 1;
-                        totnavi2 -= 1;
-                        cout << "Hai preso un blocco della nave lunga 2! Gli rimangono " << nave22 << " spazi!!";
-                        break;
-
-                    default:
-                        cout << "Hai mancato le navi!";
-                        break;
-                    }
-                }
-            }
-        }
+        attacco();
         turno++;
-        if (totnavi1 == 0)
-        {
-            statopartita = false;
-            cout << "Il vincitore e' il giocatore numero 1!";
-        }
-        if (totnavi2 == 0)
-        {
-            statopartita = false;
-            cout << "Il vincitore e' il giocatore numero 2!";
-        }
     }
     return 0;
 }
